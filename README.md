@@ -14,3 +14,9 @@ Create migration
 ```
 migrate create -ext sql -dir db/migrations -seq create_users_table
 ```
+
+
+Installing lefthook
+```
+brew install lefthook
+```

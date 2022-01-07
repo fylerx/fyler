@@ -1,0 +1,6 @@
+pre-commit:
+  parallel: true
+  commands:
+    test:
+      tags: tests
+      run: go test -v -race ./...

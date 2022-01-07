@@ -23,3 +23,6 @@ run:
 
 stop:
 	@docker-compose down
+
+test:
+	@go test -v -race ./...
