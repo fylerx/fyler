@@ -20,9 +20,9 @@ x-app:
       condition: service_healthy
 
 services:
-  worker:
-    <<: *app
-    command: go run --race /fylerx/cmd/worker/main.go
+  # worker:
+  #   <<: *app
+  #   command: go run --race /fylerx/cmd/worker/main.go
 
   postgres:
     image: postgres:latest
