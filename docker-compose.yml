@@ -1,0 +1,50 @@
+version: "3.9"
+
+x-app:
+  &app
+  build:
+    context: dev
+    dockerfile: Dockerfile
+    args:
+      GO_VERSION: '1.17'
+      PG_MAJOR: '13'
+  image: fylerx-dev:1.0.0
+  stdin_open: true
+  tty: true
+  volumes:
+    - .:/fylerx:cached
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+
+services:
+  worker:
+    <<: *app
+    command: go run --race /fylerx/cmd/worker/main.go
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./dev/init-user-db.sql:/docker-entrypoint-initdb.d/init-user-db.sql
+      - postgres_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U postgres -h 127.0.0.1
+      interval: 5s
+
+  faktory:
+    image: contribsys/faktory:latest
+    container_name: faktory
+    environment:
+      FAKTORY_PASSWORD: "qwerty"
+    ports:
+      - 7419:7419 # for sender and consumer connections
+      - 7420:7420 # web dashboard
+volumes:
+  postgres_dev: null
