@@ -1,0 +1,12 @@
+db:
+  host: localhost
+  username: fylerx
+  password: fylerx
+  database: fylerx
+  port: 5432
+  sslmode: disable
+  timezone: "Europe/Moscow"
+http:
+  port: 8080
+jwt:
+  secret_key: secretKey
