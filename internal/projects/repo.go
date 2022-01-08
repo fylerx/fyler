@@ -1,8 +1,6 @@
 package projects
 
 import (
-	"fmt"
-
 	"gorm.io/gorm"
 )
 
@@ -52,17 +50,11 @@ func (repo *ProjectsRepo) GetByAPIKey(api_key string) (*Project, error) {
 }
 
 func (repo *ProjectsRepo) Create(project *Project) (*Project, error) {
-	err := repo.projects.
-		Select("Name").
-		Omit("CreatedAt", "UpdatedAt").
-		Create(project).
-		Error
-
+	err := repo.projects.Select("Name").Create(project).Error
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(project)
 	return project, err
 }
 
