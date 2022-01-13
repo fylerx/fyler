@@ -1,6 +1,8 @@
 package projects
 
 import (
+	"github.com/fylerx/fyler/pkg/utils/randutils"
+
 	"gorm.io/gorm"
 )
 
@@ -50,7 +52,8 @@ func (repo *ProjectsRepo) GetByAPIKey(api_key string) (*Project, error) {
 }
 
 func (repo *ProjectsRepo) Create(project *Project) (*Project, error) {
-	err := repo.projects.Select("Name").Create(project).Error
+	project.APIKey = randutils.RandString(32)
+	err := repo.projects.Select("Name", "APIKey").Create(project).Error
 	if err != nil {
 		return nil, err
 	}

@@ -8,13 +8,10 @@ import (
 
 	faktory "github.com/contribsys/faktory/client"
 	"github.com/fylerx/fyler/internal/config"
+	"github.com/fylerx/fyler/internal/constants"
 	"github.com/fylerx/fyler/internal/orm"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
-)
-
-var (
-	AppName = "dispatcher"
 )
 
 type Dispatcher struct {
@@ -26,7 +23,7 @@ type Dispatcher struct {
 
 func (d *Dispatcher) Setup() error {
 	cfg := &config.Config{}
-	_, err := config.Read(AppName, config.Defaults, cfg)
+	_, err := config.Read(constants.AppName, config.Defaults, cfg)
 	if err != nil {
 		return fmt.Errorf("[startup] can't read config, err: %w", err)
 	}

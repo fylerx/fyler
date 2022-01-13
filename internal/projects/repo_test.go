@@ -9,6 +9,8 @@ import (
 
 	"github.com/fylerx/fyler/internal/projects"
 	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
@@ -174,17 +176,17 @@ func (s *Suite) TestCreate() {
 	s.mock.ExpectBegin()
 	s.mock.ExpectQuery(
 		regexp.QuoteMeta(`INSERT INTO "projects"
-		("name","created_at","updated_at")
-		VALUES ($1,$2,$3) RETURNING "id"`),
+		("name","api_key","created_at","updated_at")
+		VALUES ($1,$2,$3,$4) RETURNING "id"`),
 	).
-		WithArgs(input.Name, AnyTime{}, AnyTime{}).
+		WithArgs(input.Name, sqlmock.AnyArg(), AnyTime{}, AnyTime{}).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(newProjectID))
 	s.mock.ExpectCommit()
 
 	res, err := s.repo.Create(input)
 
 	require.NoError(s.T(), err)
-	require.Nil(s.T(), deep.Equal(expProject, res))
+	require.True(s.T(), cmp.Equal(expProject, res, cmpopts.IgnoreFields(projects.Project{}, "APIKey")))
 }
 
 func (s *Suite) TestCreateError() {
@@ -193,10 +195,10 @@ func (s *Suite) TestCreateError() {
 	s.mock.ExpectBegin()
 	s.mock.ExpectQuery(
 		regexp.QuoteMeta(`INSERT INTO "projects"
-		("name","created_at","updated_at")
-		VALUES ($1,$2,$3) RETURNING "id"`),
+		("name","api_key","created_at","updated_at")
+		VALUES ($1,$2,$3,$4) RETURNING "id"`),
 	).
-		WithArgs(input.Name, AnyTime{}, AnyTime{}).
+		WithArgs(input.Name, sqlmock.AnyArg(), AnyTime{}, AnyTime{}).
 		WillReturnError(gorm.ErrInvalidData)
 	s.mock.ExpectRollback()
 
