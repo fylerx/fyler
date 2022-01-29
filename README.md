@@ -1,4 +1,5 @@
 # fyler
+![fyler](https://github.com/fylerx/fyler/actions/workflows/go.yml/badge.svg)
 
 Run Fylerx Dev Environment
 ```
