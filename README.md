@@ -1,5 +1,6 @@
 # fyler
-![fyler](https://github.com/fylerx/fyler/actions/workflows/go.yml/badge.svg)
+![Actions Status](https://github.com/fylerx/fyler/actions/workflows/go.yml/badge.svg)
+[![codecov](https://codecov.io/gh/fylerx/fyler/branch/main/graph/badge.svg)](https://codecov.io/gh/fylerx/fyler)
 
 Run Fylerx Dev Environment
 ```
