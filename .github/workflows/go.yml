@@ -1,4 +1,4 @@
-name: Build & Test status
+name: Build & Test
 
 on:
   push:
