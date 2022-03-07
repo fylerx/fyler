@@ -55,6 +55,7 @@ func (d *Dispatcher) initializeRoutes() {
 		TasksRepo: tasksRepo,
 	}
 
+	d.router.HandleFunc("/api/tasks", handlers.Index)
 	d.router.HandleFunc("/api/tasks", handlers.Create).Methods("POST")
 }
 
