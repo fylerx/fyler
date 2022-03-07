@@ -9,7 +9,9 @@ import (
 	faktory "github.com/contribsys/faktory/client"
 	"github.com/fylerx/fyler/internal/config"
 	"github.com/fylerx/fyler/internal/constants"
+	"github.com/fylerx/fyler/internal/handlers"
 	"github.com/fylerx/fyler/internal/orm"
+	"github.com/fylerx/fyler/internal/tasks"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
 )
@@ -41,7 +43,19 @@ func (d *Dispatcher) Setup() error {
 	}
 	d.jm = client
 	d.router = mux.NewRouter()
+
+	d.initializeRoutes()
+
 	return nil
+}
+
+func (d *Dispatcher) initializeRoutes() {
+	tasksRepo := tasks.InitRepo(d.repo)
+	handlers := &handlers.TasksHandler{
+		TasksRepo: tasksRepo,
+	}
+
+	d.router.HandleFunc("/api/tasks", handlers.Create).Methods("POST")
 }
 
 func (d *Dispatcher) ListenAndServe() error {

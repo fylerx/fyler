@@ -43,7 +43,7 @@ func main() {
 					if err != nil {
 						log.Fatal(err)
 					}
-					fmt.Println("API-key:", p.APIKey)
+					fmt.Println("API-KEY:", p.APIKey)
 					return nil
 				},
 			},
