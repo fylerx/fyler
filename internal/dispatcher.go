@@ -61,7 +61,7 @@ func (d *Dispatcher) initializeRoutes() {
 
 func (d *Dispatcher) ListenAndServe() error {
 	port := strconv.Itoa(d.config.HTTP.Port)
-	log.Printf("🚀 connect to http://localhost:%s", port)
+	log.Printf("Connect to http://localhost:%s", port)
 
 	return http.ListenAndServe(":"+port, d.router)
 }

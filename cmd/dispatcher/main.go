@@ -19,6 +19,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
+	log.Println("🚀 Starting server...")
 	go func() {
 		if err := dispatcher.ListenAndServe(); err != nil {
 			log.Fatal(err.Error())
@@ -27,9 +28,13 @@ func main() {
 
 	signalChan := make(chan os.Signal)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-	<-signalChan
+	sig := <-signalChan
+
+	log.Println("Shutting down server... Reason:", sig)
 
 	if err := dispatcher.Shutdown(); err != nil {
 		log.Fatal(err.Error())
 	}
+
+	log.Println("Server gracefully stopped")
 }
