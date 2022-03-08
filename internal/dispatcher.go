@@ -10,7 +10,9 @@ import (
 	"github.com/fylerx/fyler/internal/config"
 	"github.com/fylerx/fyler/internal/constants"
 	"github.com/fylerx/fyler/internal/handlers"
+	"github.com/fylerx/fyler/internal/middleware"
 	"github.com/fylerx/fyler/internal/orm"
+	"github.com/fylerx/fyler/internal/projects"
 	"github.com/fylerx/fyler/internal/tasks"
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
@@ -51,12 +53,15 @@ func (d *Dispatcher) Setup() error {
 
 func (d *Dispatcher) initializeRoutes() {
 	tasksRepo := tasks.InitRepo(d.repo)
-	handlers := &handlers.TasksHandler{
-		TasksRepo: tasksRepo,
-	}
+	handlers := &handlers.TasksHandler{TasksRepo: tasksRepo}
 
-	d.router.HandleFunc("/api/tasks", handlers.Index)
+	d.router.HandleFunc("/api/tasks/", handlers.Index)
 	d.router.HandleFunc("/api/tasks", handlers.Create).Methods("POST")
+
+	projectsRepo := projects.InitRepo(d.repo)
+
+	pmw := middleware.ProjectMiddleware{Projects: projectsRepo}
+	d.router.Use(pmw.Middleware)
 }
 
 func (d *Dispatcher) ListenAndServe() error {
