@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	faktory "github.com/contribsys/faktory/client"
+	"github.com/fylerx/fyler/internal/enum"
 	"github.com/fylerx/fyler/internal/projects"
 	"github.com/fylerx/fyler/internal/tasks"
 	u "github.com/fylerx/fyler/pkg/utils"
@@ -15,8 +17,17 @@ type Tasks interface {
 	Create(task *tasks.Task) (*tasks.Task, error)
 }
 
+type Job struct {
+	ID        uint64        `json:"id"`
+	ProjectID uint32        `json:"project_id"`
+	Status    enum.Status   `json:"status"`
+	TaskType  enum.TaskType `json:"task_type"`
+	URL       string        `json:"url"`
+	Queue     string        `json:"queue"`
+}
 type TasksHandler struct {
 	TasksRepo Tasks
+	JM        *faktory.Client
 }
 
 func (h *TasksHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +64,22 @@ func (h *TasksHandler) Create(w http.ResponseWriter, r *http.Request) {
 		u.RespondWithError(w, http.StatusBadRequest, "can't create task")
 		return
 	}
+
+	newJob := Job{
+		ID:        task.ID,
+		ProjectID: task.ProjectID,
+		Status:    task.Status,
+		TaskType:  task.TaskType,
+	}
+
+	response, _ := json.Marshal(newJob)
+	job := faktory.NewJob(newJob.TaskType.String(), response)
+	job.Queue = "conversion"
+
+	if err = h.JM.Push(job); err != nil {
+		u.RespondWithError(w, http.StatusInternalServerError, err.Error())
+	}
+	println("Job pushed")
 
 	u.RespondWithJSON(w, http.StatusOK, task)
 }

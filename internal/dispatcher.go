@@ -53,7 +53,7 @@ func (d *Dispatcher) Setup() error {
 
 func (d *Dispatcher) initializeRoutes() {
 	tasksRepo := tasks.InitRepo(d.repo)
-	handlers := &handlers.TasksHandler{TasksRepo: tasksRepo}
+	handlers := &handlers.TasksHandler{TasksRepo: tasksRepo, JM: d.jm}
 
 	d.router.HandleFunc("/api/tasks/", handlers.Index)
 	d.router.HandleFunc("/api/tasks", handlers.Create).Methods("POST")
@@ -82,6 +82,10 @@ func (d *Dispatcher) Shutdown() error {
 		return fmt.Errorf("failed to close psql connection: %w", err)
 	}
 
-	//TODO: Close faktory
+	fmt.Println("[Faktory] Closing connection...")
+	if err = d.jm.Close(); err != nil {
+		return fmt.Errorf("failed to close faktory connection: %w", err)
+	}
+
 	return nil
 }
