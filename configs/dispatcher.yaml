@@ -8,5 +8,5 @@ db:
   timezone: "Europe/Moscow"
 http:
   port: 8080
-jwt:
-  secret_key: secretKey
+crypto:
+  passphrase: "passphrasewhichneedstobe32bytes!"

@@ -10,8 +10,8 @@ type Config struct {
 	HTTP struct {
 		Port int
 	}
-	JWT struct {
-		SecretKey string `mapstructure:"secret_key"`
+	CRYPTO struct {
+		Passphrase string
 	}
 	DB struct {
 		Host     string
@@ -36,8 +36,8 @@ var Defaults = map[string]interface{}{
 	"http": map[string]string{
 		"port": "8080",
 	},
-	"jwt": map[string]string{
-		"secret_key": "secretKey",
+	"crypto": map[string]string{
+		"passphrase": "passphrasewhichneedstobe32bytes!",
 	},
 	"db": map[string]string{
 		"host":     "postgres",

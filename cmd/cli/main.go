@@ -11,6 +11,9 @@ import (
 	"github.com/fylerx/fyler/internal/constants"
 	"github.com/fylerx/fyler/internal/orm"
 	"github.com/fylerx/fyler/internal/projects"
+	gormcrypto "github.com/pkasila/gorm-crypto"
+	"github.com/pkasila/gorm-crypto/algorithms"
+	"github.com/pkasila/gorm-crypto/serialization"
 	"github.com/urfave/cli/v2"
 )
 
@@ -27,6 +30,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to init psql connection: %v\n", err)
 	}
+
+	aes, err := algorithms.NewAES256GCM([]byte(cfg.CRYPTO.Passphrase))
+	if err != nil {
+		log.Fatalf("failed to initialize crypto algorithm: %v\n", err)
+	}
+	gormcrypto.Init(aes, serialization.NewJSON())
 
 	pj := projects.InitRepo(db)
 
@@ -52,8 +61,11 @@ func main() {
 				Aliases: []string{"l"},
 				Usage:   "complete a task on the list",
 				Action: func(c *cli.Context) error {
-					fmt.Println(pj.GetAll())
-					fmt.Println("completed task: ", c.Args().First())
+					projects, _ := pj.GetAll()
+					for _, pj := range projects {
+						fmt.Println("pj: ", pj)
+					}
+					// fmt.Println("completed task: ", c.Args().First())
 					return nil
 				},
 			},
