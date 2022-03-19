@@ -3,12 +3,13 @@ module github.com/fylerx/fyler
 go 1.17
 
 require (
+	github.com/aws/aws-sdk-go v1.43.21
 	github.com/contribsys/faktory v1.6.0
-	github.com/contribsys/faktory_worker_go v1.6.0 // indirect
+	github.com/contribsys/faktory_worker_go v1.6.0
 	github.com/go-test/deep v1.0.8
-	github.com/google/go-cmp v0.5.6 // indirect
+	github.com/google/go-cmp v0.5.6
 	github.com/gorilla/mux v1.8.0
-	github.com/pkasila/gorm-crypto v1.0.3 // indirect
+	github.com/pkasila/gorm-crypto v1.0.3
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli/v2 v2.3.0
