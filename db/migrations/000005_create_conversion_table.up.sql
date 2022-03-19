@@ -1,6 +1,6 @@
 CREATE TABLE conversions (
   id BIGSERIAL PRIMARY KEY,
-  task_id INTEGER REFERENCES tasks,
+  task_id INTEGER REFERENCES tasks NOT NULL,
   download_time INTEGER,
   upload_time INTEGER,
   file_size INTEGER,

@@ -1,6 +1,6 @@
 CREATE TABLE tasks (
   id BIGSERIAL PRIMARY KEY,
-  project_id INTEGER REFERENCES projects,
+  project_id INTEGER REFERENCES projects NOT NULL,
   task_type task_type NOT NULL,
   status status NOT NULL DEFAULT 'queued',
   url TEXT,

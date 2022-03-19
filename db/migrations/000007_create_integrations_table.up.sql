@@ -1,6 +1,6 @@
 CREATE TABLE integrations (
   id BIGSERIAL PRIMARY KEY,
-  project_id INTEGER REFERENCES projects,
+  project_id INTEGER REFERENCES projects NOT NULL,
   service service NOT NULL,
   credentials BYTEA,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
