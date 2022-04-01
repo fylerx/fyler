@@ -1,16 +1,22 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"math/rand"
 	"os"
+	"reflect"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fylerx/fyler/internal/config"
 	"github.com/fylerx/fyler/internal/constants"
 	"github.com/fylerx/fyler/internal/orm"
 	"github.com/fylerx/fyler/internal/projects"
+	"github.com/fylerx/fyler/internal/storages"
+	"github.com/mitchellh/mapstructure"
 	gormcrypto "github.com/pkasila/gorm-crypto"
 	"github.com/pkasila/gorm-crypto/algorithms"
 	"github.com/pkasila/gorm-crypto/serialization"
@@ -37,7 +43,7 @@ func main() {
 	}
 	gormcrypto.Init(aes, serialization.NewJSON())
 
-	pj := projects.InitRepo(db)
+	projectRepo := projects.InitRepo(db)
 
 	app := &cli.App{
 		Commands: []*cli.Command{
@@ -48,10 +54,49 @@ func main() {
 				Action: func(c *cli.Context) error {
 					println(c.Args().First())
 					data := &projects.Project{Name: c.Args().First()}
-					p, err := pj.Create(data)
+					p, err := projectRepo.Create(data)
 					if err != nil {
 						log.Fatal(err)
 					}
+
+					storage := projects.InitAssoc(db, p)
+
+					input := [6]string{
+						"access_key",
+						"secret_key",
+						"bucket",
+						"endpoint",
+						"region",
+						"disable_ssl",
+					}
+					res := make(map[string]interface{})
+					for _, val := range input {
+						res[val] = StringPrompt(val)
+					}
+
+					var s3 storages.Storage
+
+					dc := &mapstructure.DecoderConfig{
+						Result: &s3,
+						DecodeHook: mapstructure.ComposeDecodeHookFunc(
+							StringToBoolHookFunc,
+							StringToCryptedHookFunc,
+						)}
+					ms, err := mapstructure.NewDecoder(dc)
+					if err != nil {
+						return err
+					}
+
+					err = ms.Decode(res)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					err = storage.CreateStorage(&s3)
+					if err != nil {
+						log.Fatal(err)
+					}
+
 					fmt.Println("API-KEY:", p.APIKey)
 					return nil
 				},
@@ -61,11 +106,10 @@ func main() {
 				Aliases: []string{"l"},
 				Usage:   "complete a task on the list",
 				Action: func(c *cli.Context) error {
-					projects, _ := pj.GetAll()
+					projects, _ := projectRepo.GetAll()
 					for _, pj := range projects {
-						fmt.Println("pj: ", pj)
+						fmt.Printf("%d. %s\n", pj.ID, pj.Name)
 					}
-					// fmt.Println("completed task: ", c.Args().First())
 					return nil
 				},
 			},
@@ -76,4 +120,37 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func StringPrompt(label string) string {
+	var s string
+	r := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Fprint(os.Stderr, label+" ")
+		s, _ = r.ReadString('\n')
+		if s != "" {
+			break
+		}
+	}
+	return strings.TrimSpace(s)
+}
+
+func StringToBoolHookFunc(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+	if f.Kind() == reflect.String && t.Kind() == reflect.Bool {
+		val, _ := strconv.ParseBool(data.(string))
+		return val, nil
+	}
+
+	return data, nil
+}
+
+func StringToCryptedHookFunc(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+	fmt.Println(t.Kind())
+	if f.Kind() == reflect.String && t.Kind() == reflect.Struct {
+		crypted := gormcrypto.EncryptedValue{Raw: data.(string)}
+
+		return crypted, nil
+	}
+
+	return data, nil
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -23,7 +24,6 @@ type Job struct {
 	Status    enum.Status   `json:"status"`
 	TaskType  enum.TaskType `json:"task_type"`
 	URL       string        `json:"url"`
-	Queue     string        `json:"queue"`
 }
 type TasksHandler struct {
 	TasksRepo Tasks
@@ -70,16 +70,17 @@ func (h *TasksHandler) Create(w http.ResponseWriter, r *http.Request) {
 		ProjectID: task.ProjectID,
 		Status:    task.Status,
 		TaskType:  task.TaskType,
+		URL:       task.URL,
 	}
 
 	response, _ := json.Marshal(newJob)
 	job := faktory.NewJob(newJob.TaskType.String(), response)
-	job.Queue = "conversion"
+	job.Queue = "medium"
 
 	if err = h.JM.Push(job); err != nil {
 		u.RespondWithError(w, http.StatusInternalServerError, err.Error())
 	}
-	println("Job pushed")
+	fmt.Printf("Job pushed %v", job.Jid)
 
 	u.RespondWithJSON(w, http.StatusOK, task)
 }
