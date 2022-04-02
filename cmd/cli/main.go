@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -58,8 +59,7 @@ func main() {
 					if err != nil {
 						log.Fatal(err)
 					}
-
-					storage := projects.InitAssoc(db, p)
+					storage := storages.InitRepo(db)
 
 					input := [6]string{
 						"access_key",
@@ -92,6 +92,7 @@ func main() {
 						log.Fatal(err)
 					}
 
+					s3.ProjectID = p.ID
 					err = storage.CreateStorage(&s3)
 					if err != nil {
 						log.Fatal(err)
@@ -110,6 +111,113 @@ func main() {
 					for _, pj := range projects {
 						fmt.Printf("%d. %s\n", pj.ID, pj.Name)
 					}
+					return nil
+				},
+			},
+			{
+				Name:    "get",
+				Aliases: []string{"get"},
+				Usage:   "add a task to the list",
+				Action: func(c *cli.Context) error {
+					u64, err := strconv.ParseUint(c.Args().First(), 10, 32)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					p, err := projectRepo.GetByID(uint32(u64))
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					payload, _ := json.Marshal(p.Storage)
+
+					fmt.Println("Storage:", string(payload))
+					return nil
+				},
+			},
+			{
+				Name:    "add_storage",
+				Aliases: []string{"add_storage"},
+				Usage:   "add a task to the list",
+				Action: func(c *cli.Context) error {
+					u64, err := strconv.ParseUint(c.Args().First(), 10, 32)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					p, err := projectRepo.GetByID(uint32(u64))
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					storage := storages.InitRepo(db)
+
+					input := [6]string{
+						"access_key",
+						"secret_key",
+						"bucket",
+						"endpoint",
+						"region",
+						"disable_ssl",
+					}
+					res := make(map[string]interface{})
+					for _, val := range input {
+						res[val] = StringPrompt(val)
+					}
+
+					var s3 storages.Storage
+
+					dc := &mapstructure.DecoderConfig{
+						Result: &s3,
+						DecodeHook: mapstructure.ComposeDecodeHookFunc(
+							StringToBoolHookFunc,
+							StringToCryptedHookFunc,
+						)}
+					ms, err := mapstructure.NewDecoder(dc)
+					if err != nil {
+						return err
+					}
+
+					err = ms.Decode(res)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					s3.ProjectID = p.ID
+					err = storage.CreateStorage(&s3)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					payload, _ := json.Marshal(s3)
+
+					fmt.Println("Storage:", string(payload))
+					return nil
+				},
+			},
+			{
+				Name:    "delete_storage",
+				Aliases: []string{"delete_storage"},
+				Usage:   "add a task to the list",
+				Action: func(c *cli.Context) error {
+					u64, err := strconv.ParseUint(c.Args().First(), 10, 32)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					p, err := projectRepo.GetByID(uint32(u64))
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					storage := storages.InitRepo(db)
+					err = storage.DeleteStorage(p.Storage.ID)
+					if err != nil {
+						log.Fatal(err)
+					}
+					payload, _ := json.Marshal(p.Storage)
+
+					fmt.Println("Storage:", string(payload))
 					return nil
 				},
 			},

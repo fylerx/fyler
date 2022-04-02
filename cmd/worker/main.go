@@ -14,8 +14,8 @@ import (
 	worker "github.com/contribsys/faktory_worker_go"
 	"github.com/fylerx/fyler/internal/config"
 	"github.com/fylerx/fyler/internal/constants"
-	"github.com/fylerx/fyler/internal/integrations"
 	"github.com/fylerx/fyler/internal/orm"
+	"github.com/fylerx/fyler/internal/projects"
 	"github.com/fylerx/fyler/internal/storage"
 	"github.com/fylerx/fyler/internal/tasks"
 	gormcrypto "github.com/pkasila/gorm-crypto"
@@ -47,28 +47,28 @@ func (d *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
 	}
 	log.Printf("W %v\n", taskInput)
 
-	integrationRepo := integrations.InitRepo(d.repo)
+	projectRepo := projects.InitRepo(d.repo)
+	pj, err := projectRepo.GetByID(taskInput.ProjectID)
+	if err != nil {
+		log.Printf("error %v\n", err)
+	}
 
-	itg, _ := integrationRepo.GetService("s3", taskInput.ProjectID)
-	log.Printf("Ww %v\n", itg)
+	s3 := pj.Storage.Config()
+	log.Printf("Ww %v\n", pj.Storage)
 
-	secret := itg.Credentials.Raw.(string)
-	log.Printf("Working on job %v\n", secret)
-
-	var s3 integrations.S3Service
-
-	err = json.Unmarshal([]byte(secret), &s3)
-
-	log.Printf("S3 === %v\n", s3)
-
-	session, err := storage.New(storage.Config{
-		AccessKeyID:     s3.AccessKeyID,
-		SecretAccessKey: s3.SecretAccessKey,
-		Bucket:          s3.Bucket,
-		Endpoint:        s3.Endpoint,
-		Region:          s3.Region,
-		// DisableSSL:      s3.DisableSSL,
-	})
+	log.Printf("==S3== %v\n", s3)
+	session, err := storage.New(s3)
+	// session, err := storage.New(storage.Config{
+	// 	AccessKeyID:     s3.AccessKeyID.Raw.(string),
+	// 	SecretAccessKey: s3.SecretAccessKey.Raw.(string),
+	// 	Bucket:          s3.Bucket,
+	// 	Endpoint:        s3.Endpoint,
+	// 	Region:          s3.Region,
+	// 	DisableSSL:      s3.DisableSSL,
+	// })
+	if err != nil {
+		log.Printf("error %v\n", err)
+	}
 
 	cl := storage.NewS3(session, time.Second*5)
 
@@ -77,10 +77,15 @@ func (d *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
 		log.Fatal(err.Error())
 	}
 	defer file.Close()
-	cl.UploadObject(ctx, "aws-test", "testfile.pdf", file)
+	res, err := cl.UploadObject(ctx, s3.Bucket, "testfile.pdf", file)
+
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
 	log.Printf("Working on job %s\n", help.Jid())
 	log.Printf("Working on job %s\n", help.JobType())
+	log.Printf("Working on res %s\n", res)
 	return nil
 }
 

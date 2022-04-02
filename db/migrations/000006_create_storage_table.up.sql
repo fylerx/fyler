@@ -1,5 +1,6 @@
 CREATE TABLE storages (
-  project_id BIGINT REFERENCES projects NOT NULL PRIMARY KEY,
+  id BIGSERIAL PRIMARY KEY,
+  project_id BIGINT REFERENCES projects ON DELETE CASCADE,
   access_key_id BYTEA NOT NULL,
   secret_access_key BYTEA NOT NULL,
   bucket TEXT NOT NULL,

@@ -3,11 +3,13 @@ package storages
 import (
 	"time"
 
+	"github.com/fylerx/fyler/internal/storage"
 	gormcrypto "github.com/pkasila/gorm-crypto"
 )
 
 type Storage struct {
-	ProjectID       uint32                    `gorm:"primarykey" json:"project_id" mapstructure:"project_id"`
+	ID              uint32                    `gorm:"primarykey" json:"id"`
+	ProjectID       uint32                    `json:"project_id" mapstructure:"project_id"`
 	AccessKeyID     gormcrypto.EncryptedValue `json:"access_key_id" mapstructure:"access_key"`
 	SecretAccessKey gormcrypto.EncryptedValue `json:"secret_access_key" mapstructure:"secret_key"`
 	Bucket          string                    `json:"bucket"`
@@ -18,12 +20,13 @@ type Storage struct {
 	UpdatedAt       time.Time                 `json:"updated_at"`
 }
 
-// type StorageInput struct {
-// 	ProjectID       uint32                    `mapstructure:"project_id"`
-// 	AccessKeyID     gormcrypto.EncryptedValue `mapstructure:"access_key"`
-// 	SecretAccessKey gormcrypto.EncryptedValue `mapstructure:"secret_key"`
-// 	Bucket          string
-// 	Endpoint        string
-// 	Region          string
-// 	DisableSSL      bool `mapstructure:"disable_ssl"`
-// }
+func (s *Storage) Config() storage.Config {
+	return storage.Config{
+		AccessKeyID:     s.AccessKeyID.Raw.(string),
+		SecretAccessKey: s.SecretAccessKey.Raw.(string),
+		Bucket:          s.Bucket,
+		Endpoint:        s.Endpoint,
+		Region:          s.Region,
+		DisableSSL:      s.DisableSSL,
+	}
+}

@@ -1,10 +1,10 @@
 package projects
 
 import (
-	"github.com/fylerx/fyler/internal/storages"
 	"github.com/fylerx/fyler/pkg/utils/randutils"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Repository interface {
@@ -21,7 +21,7 @@ type ProjectsRepo struct {
 }
 
 func InitRepo(db *gorm.DB) Repository {
-	return &ProjectsRepo{db.Model(&Project{}).Debug()}
+	return &ProjectsRepo{db.Model(&Project{}).Preload(clause.Associations).Debug()}
 }
 
 func (repo *ProjectsRepo) GetAll() ([]*Project, error) {
@@ -83,31 +83,4 @@ func (repo *ProjectsRepo) Delete(id uint32) (bool, error) {
 	}
 
 	return true, nil
-}
-
-type IStorage interface {
-	CreateStorage(input *storages.Storage) error
-	UpdateStorage(input *storages.Storage) error
-	DeleteStorage() error
-}
-
-type StorageRepo struct {
-	storage *gorm.Association
-}
-
-func InitAssoc(db *gorm.DB, project *Project) IStorage {
-	return &StorageRepo{db.Model(&project).Debug().Association("Storage")}
-}
-
-func (repo *StorageRepo) CreateStorage(input *storages.Storage) error {
-	return repo.storage.Append(input)
-}
-
-func (repo *StorageRepo) UpdateStorage(input *storages.Storage) error {
-	return repo.storage.Replace(input)
-}
-
-func (repo *StorageRepo) DeleteStorage() error {
-	return repo.storage.Clear()
-
 }

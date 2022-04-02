@@ -15,6 +15,9 @@ import (
 	"github.com/fylerx/fyler/internal/projects"
 	"github.com/fylerx/fyler/internal/tasks"
 	"github.com/gorilla/mux"
+	gormcrypto "github.com/pkasila/gorm-crypto"
+	"github.com/pkasila/gorm-crypto/algorithms"
+	"github.com/pkasila/gorm-crypto/serialization"
 	"gorm.io/gorm"
 )
 
@@ -32,6 +35,12 @@ func (d *Dispatcher) Setup() error {
 		return fmt.Errorf("[startup] can't read config, err: %w", err)
 	}
 	d.config = cfg
+
+	aes, err := algorithms.NewAES256GCM([]byte(cfg.CRYPTO.Passphrase))
+	if err != nil {
+		log.Fatalf("failed to initialize crypto algorithm: %v\n", err)
+	}
+	gormcrypto.Init(aes, serialization.NewJSON())
 
 	db, err := orm.Init(cfg)
 	if err != nil {
