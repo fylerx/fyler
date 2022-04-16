@@ -55,12 +55,12 @@ func (d *Dispatcher) Setup() error {
 	d.jm = client
 	d.router = mux.NewRouter()
 
-	d.initializeRoutes()
+	d.setupRoutes()
 
 	return nil
 }
 
-func (d *Dispatcher) initializeRoutes() {
+func (d *Dispatcher) setupRoutes() {
 	tasksRepo := tasks.InitRepo(d.repo)
 	handlers := &handlers.TasksHandler{TasksRepo: tasksRepo, JM: d.jm}
 
