@@ -58,7 +58,7 @@ func (s *Suite) SetupSuite() {
 		ID:        999,
 		ProjectID: 777,
 		TaskType:  "doc_to_pdf",
-		URL:       "url",
+		FilePath:  "document/22/file/file.docx",
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -78,7 +78,7 @@ func (s *Suite) TestGetAll() {
 	now := time.Now()
 
 	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "tasks"`)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "project_id", "status", "task_type", "url", "updated_at"}).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "project_id", "status", "task_type", "file_path", "updated_at"}).
 			AddRow(1, 500, "queued", "doc_to_pdf", "http://example.com/cat.docx", now).
 			AddRow(2, 505, "progress", "video_to_mp4", "http://example.com/cat.mp4", now).
 			AddRow(3, 500, "failed", "doc_to_pdf", "http://example.com/cat.xslx", now))
@@ -91,7 +91,7 @@ func (s *Suite) TestGetAll() {
 			ProjectID: 500,
 			Status:    "queued",
 			TaskType:  "doc_to_pdf",
-			URL:       "http://example.com/cat.docx",
+			FilePath:  "http://example.com/cat.docx",
 			UpdatedAt: now,
 		},
 		{
@@ -99,7 +99,7 @@ func (s *Suite) TestGetAll() {
 			ProjectID: 505,
 			Status:    "progress",
 			TaskType:  "video_to_mp4",
-			URL:       "http://example.com/cat.mp4",
+			FilePath:  "http://example.com/cat.mp4",
 			UpdatedAt: now,
 		},
 		{
@@ -107,7 +107,7 @@ func (s *Suite) TestGetAll() {
 			ProjectID: 500,
 			Status:    "failed",
 			TaskType:  "doc_to_pdf",
-			URL:       "http://example.com/cat.xslx",
+			FilePath:  "http://example.com/cat.xslx",
 			UpdatedAt: now,
 		},
 	}
@@ -133,14 +133,14 @@ func (s *Suite) TestCreate() {
 	input := &tasks.Task{
 		ProjectID: projectID,
 		TaskType:  "doc_to_pdf",
-		URL:       "http://example.com/cat.docx",
+		FilePath:  "http://example.com/cat.docx",
 	}
 	expTask := &tasks.Task{
 		ID:        newTaskID,
 		ProjectID: projectID,
 		Status:    "queued",
 		TaskType:  "doc_to_pdf",
-		URL:       "http://example.com/cat.docx",
+		FilePath:  "http://example.com/cat.docx",
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -148,10 +148,10 @@ func (s *Suite) TestCreate() {
 	s.mock.ExpectBegin()
 	s.mock.ExpectQuery(
 		regexp.QuoteMeta(`INSERT INTO "tasks"
-		("project_id","status","task_type","url","created_at","updated_at")
+		("project_id","status","task_type","file_path","created_at","updated_at")
 		VALUES ($1,$2,$3,$4,$5,$6) RETURNING "id"`),
 	).
-		WithArgs(projectID, "queued", input.TaskType, input.URL, AnyTime{}, AnyTime{}).
+		WithArgs(projectID, "queued", input.TaskType, input.FilePath, AnyTime{}, AnyTime{}).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(newTaskID))
 	s.mock.ExpectCommit()
 
@@ -166,16 +166,16 @@ func (s *Suite) TestCreateError() {
 	input := &tasks.Task{
 		ProjectID: projectID,
 		TaskType:  "doc_to_pdf",
-		URL:       "http://example.com/cat.docx",
+		FilePath:  "http://example.com/cat.docx",
 	}
 
 	s.mock.ExpectBegin()
 	s.mock.ExpectQuery(
 		regexp.QuoteMeta(`INSERT INTO "tasks"
-		("project_id","status","task_type","url","created_at","updated_at")
+		("project_id","status","task_type","file_path","created_at","updated_at")
 		VALUES ($1,$2,$3,$4,$5,$6) RETURNING "id"`),
 	).
-		WithArgs(projectID, "queued", input.TaskType, input.URL, AnyTime{}, AnyTime{}).
+		WithArgs(projectID, "queued", input.TaskType, input.FilePath, AnyTime{}, AnyTime{}).
 		WillReturnError(gorm.ErrInvalidData)
 	s.mock.ExpectRollback()
 

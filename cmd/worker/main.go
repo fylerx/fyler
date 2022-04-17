@@ -5,8 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -14,8 +16,8 @@ import (
 	worker "github.com/contribsys/faktory_worker_go"
 	"github.com/fylerx/fyler/internal/config"
 	"github.com/fylerx/fyler/internal/constants"
+	"github.com/fylerx/fyler/internal/conversions"
 	"github.com/fylerx/fyler/internal/orm"
-	"github.com/fylerx/fyler/internal/projects"
 	"github.com/fylerx/fyler/internal/storage"
 	"github.com/fylerx/fyler/internal/tasks"
 	gormcrypto "github.com/pkasila/gorm-crypto"
@@ -31,66 +33,107 @@ type Worker struct {
 }
 
 func (d *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
+	// Get job
 	help := worker.HelperFor(ctx)
-	log.Println(args...)
-
 	rawDecodedText, err := base64.StdEncoding.DecodeString(args[0].(string))
 	if err != nil {
-		panic(err)
+		log.Println(err)
+		return err
 	}
 	fmt.Printf("Decoded text: %s\n", rawDecodedText)
 
-	taskInput := tasks.Task{}
-	err = json.Unmarshal(rawDecodedText, &taskInput)
+	taskJob := &tasks.Task{}
+	err = json.Unmarshal(rawDecodedText, taskJob)
 	if err != nil {
 		log.Printf("error %v\n", err)
+		return err
 	}
-	log.Printf("W %v\n", taskInput)
 
-	projectRepo := projects.InitRepo(d.repo)
-	pj, err := projectRepo.GetByID(taskInput.ProjectID)
+	taskRepo := tasks.InitRepo(d.repo)
+	task, err := taskRepo.GetByID(taskJob.ID)
 	if err != nil {
 		log.Printf("error %v\n", err)
+		return err
 	}
+	taskRepo.Progress(task)
 
-	s3 := pj.Storage.Config()
-	log.Printf("Ww %v\n", pj.Storage)
-
-	log.Printf("==S3== %v\n", s3)
+	s3 := task.Project.Storage.Config()
 	session, err := storage.New(s3)
-	// session, err := storage.New(storage.Config{
-	// 	AccessKeyID:     s3.AccessKeyID.Raw.(string),
-	// 	SecretAccessKey: s3.SecretAccessKey.Raw.(string),
-	// 	Bucket:          s3.Bucket,
-	// 	Endpoint:        s3.Endpoint,
-	// 	Region:          s3.Region,
-	// 	DisableSSL:      s3.DisableSSL,
-	// })
 	if err != nil {
 		log.Printf("error %v\n", err)
 	}
 
-	cl := storage.NewS3(session, time.Second*5)
-
-	file, err := os.OpenFile("testfile.pdf", os.O_RDONLY, 0644)
-	if err != nil {
-		log.Fatal(err.Error())
+	clientS3 := storage.NewS3(session, time.Second*5)
+	conv := &conversions.Conversion{
+		TaskID: task.ID,
+		JobID:  help.Jid(),
 	}
-	defer file.Close()
-	res, err := cl.UploadObject(ctx, s3.Bucket, "testfile.pdf", file)
 
+	// Downloading file
+	file, err := ioutil.TempFile("/tmp", "fylerx_")
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Printf("error %v\n", err)
+		taskRepo.Failed(task, err)
+		return err
+	}
+	defer os.Remove(file.Name())
+
+	startDownload := time.Now()
+	err = clientS3.DownloadObject(ctx, s3.Bucket, task.FilePath, file)
+	if err != nil {
+		log.Printf("error %v\n", err)
+		taskRepo.Failed(task, err)
+		return err
+	}
+	conv.DownloadTime = int(time.Since(startDownload).Seconds())
+	// -
+
+	// Convert file
+	startTimeSpent := time.Now()
+	FileOut := fmt.Sprintf("converted_%s", file.Name())
+	out, err := exec.Command("unoconv", "-o", FileOut, "-f", "pdf", file.Name()).Output()
+	if err != nil {
+		// taskRepo.Failed(taskInput.ID, err)
+		log.Printf("error %v\n", err)
+		// return err
+	}
+	fmt.Println("Command Successfully Executed", out)
+
+	fi, err := file.Stat()
+	if err != nil {
+		// taskRepo.Failed(taskInput.ID, err)
+		log.Printf("error %v\n", err)
+		// return err
+	}
+	conv.TimeSpent = int(time.Since(startTimeSpent).Seconds())
+	conv.FileSize = fi.Size()
+	conv.ResultPath = fi.Name()
+	// -
+
+	// Uploading file
+	startUpload := time.Now()
+	res, err := clientS3.UploadObject(ctx, s3.Bucket, file.Name(), file)
+	if err != nil {
+		taskRepo.Failed(task, err)
+		log.Printf("error %v\n", err)
+	}
+	conv.UploadTime = int(time.Since(startUpload).Seconds())
+	task.Conversion = conv
+
+	err = taskRepo.Success(task)
+	if err != nil {
+		taskRepo.Failed(task, err)
+		log.Printf("error %v\n", err)
 	}
 
 	log.Printf("Working on job %s\n", help.Jid())
 	log.Printf("Working on job %s\n", help.JobType())
 	log.Printf("Working on res %s\n", res)
+	log.Printf("Working on conv %v\n", conv)
 	return nil
 }
 
 func main() {
-
 	cfg := &config.Config{}
 	_, err := config.Read(constants.AppName, config.Defaults, cfg)
 	if err != nil {
@@ -110,11 +153,8 @@ func main() {
 
 	// ctx, cancel := context.WithCancel(context.Background())
 	mgr := worker.NewManager()
-
 	mgr.Concurrency = 2
-
 	mgr.Labels = append(mgr.Labels, "worker")
-
 	mgr.ProcessStrictPriorityQueues("urgent", "high", "medium", "low")
 
 	wr := &Worker{config: cfg, repo: db, wm: mgr}

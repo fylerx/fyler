@@ -23,7 +23,7 @@ type Job struct {
 	ProjectID uint32        `json:"project_id"`
 	Status    enum.Status   `json:"status"`
 	TaskType  enum.TaskType `json:"task_type"`
-	URL       string        `json:"url"`
+	FilePath  string        `json:"file_path"`
 }
 type TasksHandler struct {
 	TasksRepo Tasks
@@ -70,7 +70,7 @@ func (h *TasksHandler) Create(w http.ResponseWriter, r *http.Request) {
 		ProjectID: task.ProjectID,
 		Status:    task.Status,
 		TaskType:  task.TaskType,
-		URL:       task.URL,
+		FilePath:  task.FilePath,
 	}
 
 	response, _ := json.Marshal(newJob)
