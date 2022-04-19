@@ -9,7 +9,7 @@ import (
 
 type Storage struct {
 	ID              uint32                    `gorm:"primarykey" json:"id"`
-	ProjectID       uint32                    `json:"project_id" mapstructure:"project_id"`
+	ProjectID       uint64                    `json:"project_id" mapstructure:"project_id"`
 	AccessKeyID     gormcrypto.EncryptedValue `json:"access_key_id" mapstructure:"access_key"`
 	SecretAccessKey gormcrypto.EncryptedValue `json:"secret_access_key" mapstructure:"secret_key"`
 	Bucket          string                    `json:"bucket"`

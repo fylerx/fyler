@@ -34,4 +34,6 @@ MY_FAKTORY_URL=tcp://:qwerty@localhost:7419 FAKTORY_PROVIDER=MY_FAKTORY_URL go r
 MY_FAKTORY_URL=tcp://:qwerty@localhost:7419 FAKTORY_PROVIDER=MY_FAKTORY_URL go run cmd/worker/main.go
 
 
+
+go run cmd/cli/main.go new test_project
 ```

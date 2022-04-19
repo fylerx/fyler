@@ -9,11 +9,11 @@ import (
 
 type Repository interface {
 	GetAll() ([]*Project, error)
-	GetByID(id uint32) (*Project, error)
+	GetByID(id uint64) (*Project, error)
 	GetByAPIKey(api_key string) (*Project, error)
 	Create(project *Project) (*Project, error)
-	Update(id uint32, name string) (bool, error)
-	Delete(id uint32) (bool, error)
+	Update(id uint64, name string) (bool, error)
+	Delete(id uint64) (bool, error)
 }
 
 type ProjectsRepo struct {
@@ -34,7 +34,7 @@ func (repo *ProjectsRepo) GetAll() ([]*Project, error) {
 	return projects, nil
 }
 
-func (repo *ProjectsRepo) GetByID(id uint32) (*Project, error) {
+func (repo *ProjectsRepo) GetByID(id uint64) (*Project, error) {
 	var project *Project
 	err := repo.projects.First(&project, id).Error
 	if err != nil {
@@ -62,7 +62,7 @@ func (repo *ProjectsRepo) Create(project *Project) (*Project, error) {
 	return project, err
 }
 
-func (repo *ProjectsRepo) Update(id uint32, name string) (bool, error) {
+func (repo *ProjectsRepo) Update(id uint64, name string) (bool, error) {
 	_, err := repo.GetByID(id)
 	if err != nil {
 		return false, err
@@ -76,7 +76,7 @@ func (repo *ProjectsRepo) Update(id uint32, name string) (bool, error) {
 	return true, nil
 }
 
-func (repo *ProjectsRepo) Delete(id uint32) (bool, error) {
+func (repo *ProjectsRepo) Delete(id uint64) (bool, error) {
 	err := repo.projects.Delete(&Project{}, id).Error
 	if err != nil {
 		return false, err

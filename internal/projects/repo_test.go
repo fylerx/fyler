@@ -108,7 +108,7 @@ func (s *Suite) TestGetAllError() {
 }
 
 func (s *Suite) TestGetByID() {
-	var ID uint32 = 10
+	var ID uint64 = 10
 	expProject := &projects.Project{ID: ID, Name: "new project", APIKey: "apikey"}
 
 	project := sqlmock.NewRows([]string{"id", "name", "api_key"}).
@@ -163,7 +163,7 @@ func (s *Suite) TestGetByAPIKeyError() {
 }
 
 func (s *Suite) TestCreate() {
-	var newProjectID uint32 = 123
+	var newProjectID uint64 = 123
 	now := time.Now()
 	input := &projects.Project{Name: "Main Project", CreatedAt: now, UpdatedAt: now}
 	expProject := &projects.Project{

@@ -2,8 +2,6 @@ package internal
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -18,16 +16,17 @@ import (
 	"github.com/fylerx/fyler/internal/orm"
 	"github.com/fylerx/fyler/internal/storage"
 	"github.com/fylerx/fyler/internal/tasks"
+	"github.com/fylerx/fyler/internal/workers"
 	gormcrypto "github.com/pkasila/gorm-crypto"
 	"github.com/pkasila/gorm-crypto/algorithms"
 	"github.com/pkasila/gorm-crypto/serialization"
-	"gorm.io/gorm"
 )
 
 type Worker struct {
 	config *config.Config
-	repo   *gorm.DB
-	wm     *worker.Manager
+	// repo   *gorm.DB
+	wm    *worker.Manager
+	tasks tasks.Repository
 }
 
 func (w *Worker) Setup() error {
@@ -48,7 +47,7 @@ func (w *Worker) Setup() error {
 	if err != nil {
 		return fmt.Errorf("failed to init psql connection: %w", err)
 	}
-	w.repo = db
+	w.tasks = tasks.InitRepo(db)
 
 	mgr := worker.NewManager()
 	mgr.Concurrency = 2
@@ -64,13 +63,8 @@ func (w *Worker) Run() error {
 }
 
 func (w *Worker) Shutdown() error {
-	dbConn, err := w.repo.DB()
-	if err != nil {
-		return fmt.Errorf("failed to get psql connection: %w", err)
-	}
-
 	fmt.Println("[PostrgeSQL] Closing connection...")
-	if err = dbConn.Close(); err != nil {
+	if err := w.tasks.CloseDBConnection(); err != nil {
 		return fmt.Errorf("failed to close psql connection: %w", err)
 	}
 
@@ -83,27 +77,22 @@ func (w *Worker) Shutdown() error {
 func (w *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
 	// Get job
 	help := worker.HelperFor(ctx)
-	rawDecodedText, err := base64.StdEncoding.DecodeString(args[0].(string))
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	fmt.Printf("Decoded text: %s\n", rawDecodedText)
-
-	taskJob := &tasks.Task{}
-	err = json.Unmarshal(rawDecodedText, taskJob)
+	task, err := workers.FetchTaskFromQueue(w.tasks, args)
 	if err != nil {
 		log.Printf("error %v\n", err)
 		return err
 	}
 
-	taskRepo := tasks.InitRepo(w.repo)
-	task, err := taskRepo.GetByID(taskJob.ID)
+	err = w.tasks.SetProgressStatus(task)
 	if err != nil {
 		log.Printf("error %v\n", err)
 		return err
 	}
-	taskRepo.Progress(task)
+
+	conv := &conversions.Conversion{
+		TaskID: task.ID,
+		JobID:  help.Jid(),
+	}
 
 	s3 := task.Project.Storage.Config()
 	session, err := storage.New(s3)
@@ -112,16 +101,12 @@ func (w *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
 	}
 
 	clientS3 := storage.NewS3(session, time.Second*5)
-	conv := &conversions.Conversion{
-		TaskID: task.ID,
-		JobID:  help.Jid(),
-	}
 
 	// Downloading file
 	file, err := ioutil.TempFile("/tmp", "fylerx_")
 	if err != nil {
 		log.Printf("error %v\n", err)
-		taskRepo.Failed(task, err)
+		w.tasks.Failed(task, err)
 		return err
 	}
 	defer os.Remove(file.Name())
@@ -130,7 +115,7 @@ func (w *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
 	err = clientS3.DownloadObject(ctx, s3.Bucket, task.FilePath, file)
 	if err != nil {
 		log.Printf("error %v\n", err)
-		taskRepo.Failed(task, err)
+		w.tasks.Failed(task, err)
 		return err
 	}
 	conv.DownloadTime = int(time.Since(startDownload).Seconds())
@@ -162,15 +147,15 @@ func (w *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
 	startUpload := time.Now()
 	res, err := clientS3.UploadObject(ctx, s3.Bucket, file.Name(), file)
 	if err != nil {
-		taskRepo.Failed(task, err)
+		w.tasks.Failed(task, err)
 		log.Printf("error %v\n", err)
 	}
 	conv.UploadTime = int(time.Since(startUpload).Seconds())
 	task.Conversion = conv
 
-	err = taskRepo.Success(task)
+	err = w.tasks.SetSuccessStatus(task)
 	if err != nil {
-		taskRepo.Failed(task, err)
+		w.tasks.Failed(task, err)
 		log.Printf("error %v\n", err)
 	}
 

@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	faktory "github.com/contribsys/faktory/client"
-	"github.com/fylerx/fyler/internal/enum"
+	"github.com/fylerx/fyler/internal/jobs"
 	"github.com/fylerx/fyler/internal/projects"
 	"github.com/fylerx/fyler/internal/tasks"
 	u "github.com/fylerx/fyler/pkg/utils"
@@ -18,13 +18,6 @@ type Tasks interface {
 	Create(task *tasks.Task) (*tasks.Task, error)
 }
 
-type Job struct {
-	ID        uint64        `json:"id"`
-	ProjectID uint32        `json:"project_id"`
-	Status    enum.Status   `json:"status"`
-	TaskType  enum.TaskType `json:"task_type"`
-	FilePath  string        `json:"file_path"`
-}
 type TasksHandler struct {
 	TasksRepo Tasks
 	JM        *faktory.Client
@@ -65,16 +58,13 @@ func (h *TasksHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newJob := Job{
-		ID:        task.ID,
-		ProjectID: task.ProjectID,
-		Status:    task.Status,
-		TaskType:  task.TaskType,
-		FilePath:  task.FilePath,
+	newJob := jobs.Job{
+		TaskID:   task.ID,
+		TaskType: task.TaskType,
 	}
 
-	response, _ := json.Marshal(newJob)
-	job := faktory.NewJob(newJob.TaskType.String(), response)
+	data, _ := json.Marshal(newJob)
+	job := faktory.NewJob(task.TaskType.String(), data)
 	job.Queue = "medium"
 
 	if err = h.JM.Push(job); err != nil {

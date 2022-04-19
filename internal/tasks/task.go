@@ -10,7 +10,7 @@ import (
 
 type Task struct {
 	ID         uint64                  `gorm:"primarykey" json:"id"`
-	ProjectID  uint32                  `json:"project_id"`
+	ProjectID  uint64                  `json:"project_id"`
 	Project    *projects.Project       `json:"-"`
 	Status     enum.Status             `gorm:"type:status;default:'queued'" json:"status"`
 	TaskType   enum.TaskType           `gorm:"type:task_type" json:"task_type"`

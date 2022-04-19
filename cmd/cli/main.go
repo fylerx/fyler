@@ -119,12 +119,12 @@ func main() {
 				Aliases: []string{"get"},
 				Usage:   "add a task to the list",
 				Action: func(c *cli.Context) error {
-					u64, err := strconv.ParseUint(c.Args().First(), 10, 32)
+					id, err := strconv.ParseUint(c.Args().First(), 10, 32)
 					if err != nil {
 						log.Fatal(err)
 					}
 
-					p, err := projectRepo.GetByID(uint32(u64))
+					p, err := projectRepo.GetByID(id)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -140,12 +140,12 @@ func main() {
 				Aliases: []string{"add_storage"},
 				Usage:   "add a task to the list",
 				Action: func(c *cli.Context) error {
-					u64, err := strconv.ParseUint(c.Args().First(), 10, 32)
+					id, err := strconv.ParseUint(c.Args().First(), 10, 32)
 					if err != nil {
 						log.Fatal(err)
 					}
 
-					p, err := projectRepo.GetByID(uint32(u64))
+					p, err := projectRepo.GetByID(id)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -200,12 +200,12 @@ func main() {
 				Aliases: []string{"delete_storage"},
 				Usage:   "add a task to the list",
 				Action: func(c *cli.Context) error {
-					u64, err := strconv.ParseUint(c.Args().First(), 10, 32)
+					id, err := strconv.ParseUint(c.Args().First(), 10, 32)
 					if err != nil {
 						log.Fatal(err)
 					}
 
-					p, err := projectRepo.GetByID(uint32(u64))
+					p, err := projectRepo.GetByID(id)
 					if err != nil {
 						log.Fatal(err)
 					}

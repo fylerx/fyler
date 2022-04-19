@@ -1,6 +1,8 @@
 package tasks
 
 import (
+	"fmt"
+
 	"github.com/fylerx/fyler/internal/enum"
 	"gorm.io/gorm"
 )
@@ -9,9 +11,10 @@ type Repository interface {
 	GetAll() ([]*Task, error)
 	GetByID(id uint64) (*Task, error)
 	Create(task *Task) (*Task, error)
-	Progress(task *Task) error
+	SetProgressStatus(task *Task) error
 	Failed(task *Task, err error) error
-	Success(task *Task) error
+	SetSuccessStatus(task *Task) error
+	CloseDBConnection() error
 }
 type TasksRepo struct {
 	db *gorm.DB
@@ -56,11 +59,20 @@ func (repo *TasksRepo) Failed(task *Task, err error) error {
 		Error
 }
 
-func (repo *TasksRepo) Success(task *Task) error {
+func (repo *TasksRepo) SetSuccessStatus(task *Task) error {
 	task.Status = enum.StatusSuccess
 	return repo.db.Select("Status", "Conversion").Updates(task).Error
 }
 
-func (repo *TasksRepo) Progress(task *Task) error {
+func (repo *TasksRepo) SetProgressStatus(task *Task) error {
 	return repo.db.Model(task).Select("status").Update("status", enum.StatusProgress).Error
+}
+
+func (repo *TasksRepo) CloseDBConnection() error {
+	dbConn, err := repo.db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get psql connection: %w", err)
+	}
+
+	return dbConn.Close()
 }

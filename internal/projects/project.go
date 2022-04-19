@@ -9,7 +9,7 @@ import (
 )
 
 type Project struct {
-	ID        uint32           `gorm:"primarykey" json:"id"`
+	ID        uint64           `gorm:"primarykey" json:"id"`
 	Name      string           `json:"name"`
 	APIKey    string           `json:"apikey"`
 	Storage   storages.Storage `json:"-"`

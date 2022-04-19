@@ -126,7 +126,7 @@ func (s *Suite) TestGetAllError() {
 }
 
 func (s *Suite) TestCreate() {
-	var projectID uint32 = 500
+	var projectID uint64 = 500
 	var newTaskID uint64 = 900
 	now := time.Now()
 
@@ -162,7 +162,7 @@ func (s *Suite) TestCreate() {
 }
 
 func (s *Suite) TestCreateError() {
-	var projectID uint32 = 500
+	var projectID uint64 = 500
 	input := &tasks.Task{
 		ProjectID: projectID,
 		TaskType:  "doc_to_pdf",
