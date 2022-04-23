@@ -8,10 +8,10 @@ import (
 	"github.com/fylerx/fyler/internal/tasks"
 )
 
-func FetchTaskFromQueue(repo tasks.Repository, args ...interface{}) (*tasks.Task, error) {
+func FetchTaskFromQueue(repo tasks.Repository, arg string) (*tasks.Task, error) {
 	job := &jobs.Job{}
 
-	rawDecodedText, err := base64.StdEncoding.DecodeString(args[0].(string))
+	rawDecodedText, err := base64.StdEncoding.DecodeString(arg)
 	if err != nil {
 		return nil, err
 	}

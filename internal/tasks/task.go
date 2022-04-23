@@ -15,6 +15,7 @@ type Task struct {
 	Status     enum.Status             `gorm:"type:status;default:'queued'" json:"status"`
 	TaskType   enum.TaskType           `gorm:"type:task_type" json:"task_type"`
 	FilePath   string                  `json:"file_path"`
+	JobID      string                  `json:"job_id"`
 	Error      string                  `json:"error"`
 	Conversion *conversions.Conversion `json:"conversion"`
 	CreatedAt  time.Time               `json:"created_at"`

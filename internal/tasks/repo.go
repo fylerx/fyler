@@ -11,7 +11,7 @@ type Repository interface {
 	GetAll() ([]*Task, error)
 	GetByID(id uint64) (*Task, error)
 	Create(task *Task) (*Task, error)
-	SetProgressStatus(task *Task) error
+	SetProgressStatus(task *Task, job_id string) error
 	Failed(task *Task, err error) error
 	SetSuccessStatus(task *Task) error
 	CloseDBConnection() error
@@ -64,8 +64,11 @@ func (repo *TasksRepo) SetSuccessStatus(task *Task) error {
 	return repo.db.Select("Status", "Conversion").Updates(task).Error
 }
 
-func (repo *TasksRepo) SetProgressStatus(task *Task) error {
-	return repo.db.Model(task).Select("status").Update("status", enum.StatusProgress).Error
+func (repo *TasksRepo) SetProgressStatus(task *Task, job_id string) error {
+	return repo.db.Model(task).
+		Select("status", "job_id").
+		Updates(Task{Status: enum.StatusProgress, JobID: job_id}).
+		Error
 }
 
 func (repo *TasksRepo) CloseDBConnection() error {

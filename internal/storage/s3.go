@@ -7,10 +7,16 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
+
+type IClientS3 interface {
+	// Upload a new object to a bucket and returns its URL to view/download.
+	UploadObject(ctx context.Context, bucket, fileName string, body io.Reader) (string, error)
+	// Downloads an existing object from a bucket.
+	DownloadObject(ctx context.Context, bucket, fileName string, body io.WriterAt) error
+}
 
 type S3 struct {
 	timeout    time.Duration
@@ -19,32 +25,18 @@ type S3 struct {
 	downloader *s3manager.Downloader
 }
 
-func NewS3(session *session.Session, timeout time.Duration) S3 {
-	return S3{
-		timeout:    timeout,
+func NewS3(config Config) (IClientS3, error) {
+	session, err := New(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &S3{
+		timeout:    time.Second * 5,
 		client:     s3.New(session),
 		uploader:   s3manager.NewUploader(session),
 		downloader: s3manager.NewDownloader(session),
-	}
-}
-
-func (s S3) Create(ctx context.Context, bucket string) error {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	if _, err := s.client.CreateBucketWithContext(ctx, &s3.CreateBucketInput{
-		Bucket: aws.String(bucket),
-	}); err != nil {
-		return fmt.Errorf("create %w", err)
-	}
-
-	if err := s.client.WaitUntilBucketExists(&s3.HeadBucketInput{
-		Bucket: aws.String(bucket),
-	}); err != nil {
-		return fmt.Errorf("wait: %w", err)
-	}
-
-	return nil
+	}, nil
 }
 
 func (s S3) UploadObject(ctx context.Context, bucket, fileName string, body io.Reader) (string, error) {
@@ -71,28 +63,4 @@ func (s S3) DownloadObject(ctx context.Context, bucket, fileName string, body io
 	}
 
 	return nil
-}
-
-func (s S3) ListObjects(ctx context.Context, bucket string) ([]*Object, error) {
-	ctx, cancel := context.WithTimeout(ctx, s.timeout)
-	defer cancel()
-
-	res, err := s.client.ListObjectsV2WithContext(ctx, &s3.ListObjectsV2Input{
-		Bucket: aws.String(bucket),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list: %w", err)
-	}
-
-	objects := make([]*Object, len(res.Contents))
-
-	for i, object := range res.Contents {
-		objects[i] = &Object{
-			Key:        *object.Key,
-			Size:       *object.Size,
-			ModifiedAt: *object.LastModified,
-		}
-	}
-
-	return objects, nil
 }

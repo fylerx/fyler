@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -12,9 +11,8 @@ import (
 	worker "github.com/contribsys/faktory_worker_go"
 	"github.com/fylerx/fyler/internal/config"
 	"github.com/fylerx/fyler/internal/constants"
-	"github.com/fylerx/fyler/internal/conversions"
+	"github.com/fylerx/fyler/internal/operations"
 	"github.com/fylerx/fyler/internal/orm"
-	"github.com/fylerx/fyler/internal/storage"
 	"github.com/fylerx/fyler/internal/tasks"
 	"github.com/fylerx/fyler/internal/workers"
 	gormcrypto "github.com/pkasila/gorm-crypto"
@@ -24,9 +22,8 @@ import (
 
 type Worker struct {
 	config *config.Config
-	// repo   *gorm.DB
-	wm    *worker.Manager
-	tasks tasks.Repository
+	wm     *worker.Manager
+	tasks  tasks.Repository
 }
 
 func (w *Worker) Setup() error {
@@ -75,93 +72,68 @@ func (w *Worker) Shutdown() error {
 }
 
 func (w *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
-	// Get job
+	task, err := workers.FetchTaskFromQueue(w.tasks, args[0].(string))
+	if err != nil {
+		log.Printf("error %v\n", err)
+		return err
+	}
+
 	help := worker.HelperFor(ctx)
-	task, err := workers.FetchTaskFromQueue(w.tasks, args)
+	err = w.tasks.SetProgressStatus(task, help.Jid())
 	if err != nil {
 		log.Printf("error %v\n", err)
 		return err
 	}
 
-	err = w.tasks.SetProgressStatus(task)
-	if err != nil {
-		log.Printf("error %v\n", err)
-		return err
-	}
-
-	conv := &conversions.Conversion{
-		TaskID: task.ID,
-		JobID:  help.Jid(),
-	}
-
-	s3 := task.Project.Storage.Config()
-	session, err := storage.New(s3)
-	if err != nil {
-		log.Printf("error %v\n", err)
-	}
-
-	clientS3 := storage.NewS3(session, time.Second*5)
-
-	// Downloading file
-	file, err := ioutil.TempFile("/tmp", "fylerx_")
+	operation, err := operations.New(ctx, task)
 	if err != nil {
 		log.Printf("error %v\n", err)
 		w.tasks.Failed(task, err)
 		return err
 	}
+
+	file, err := operation.DownloadObject()
 	defer os.Remove(file.Name())
-
-	startDownload := time.Now()
-	err = clientS3.DownloadObject(ctx, s3.Bucket, task.FilePath, file)
 	if err != nil {
 		log.Printf("error %v\n", err)
 		w.tasks.Failed(task, err)
 		return err
 	}
-	conv.DownloadTime = int(time.Since(startDownload).Seconds())
-	// -
 
 	// Convert file
 	startTimeSpent := time.Now()
 	FileOut := fmt.Sprintf("converted_%s", file.Name())
 	out, err := exec.Command("unoconv", "-o", FileOut, "-f", "pdf", file.Name()).Output()
 	if err != nil {
-		// taskRepo.Failed(taskInput.ID, err)
+		w.tasks.Failed(task, err)
 		log.Printf("error %v\n", err)
-		// return err
+		return err
 	}
 	fmt.Println("Command Successfully Executed", out)
 
 	fi, err := file.Stat()
 	if err != nil {
-		// taskRepo.Failed(taskInput.ID, err)
+		w.tasks.Failed(task, err)
 		log.Printf("error %v\n", err)
-		// return err
+		return err
 	}
-	conv.TimeSpent = int(time.Since(startTimeSpent).Seconds())
-	conv.FileSize = fi.Size()
-	conv.ResultPath = fi.Name()
+	operation.TimeSpent = int(time.Since(startTimeSpent).Seconds())
+	operation.FileSize = fi.Size()
+	operation.ResultPath = fi.Name()
 	// -
 
 	// Uploading file
-	startUpload := time.Now()
-	res, err := clientS3.UploadObject(ctx, s3.Bucket, file.Name(), file)
+	err = operation.UploadObject(file)
 	if err != nil {
-		w.tasks.Failed(task, err)
 		log.Printf("error %v\n", err)
+		w.tasks.Failed(task, err)
+		return err
 	}
-	conv.UploadTime = int(time.Since(startUpload).Seconds())
-	task.Conversion = conv
-
+	task.Conversion = operation.Conversion()
 	err = w.tasks.SetSuccessStatus(task)
 	if err != nil {
 		w.tasks.Failed(task, err)
 		log.Printf("error %v\n", err)
 	}
-
-	log.Printf("Working on job %s\n", help.Jid())
-	log.Printf("Working on job %s\n", help.JobType())
-	log.Printf("Working on res %s\n", res)
-	log.Printf("Working on conv %v\n", conv)
 	return nil
 }
