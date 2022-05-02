@@ -1,7 +1,8 @@
 CREATE TABLE projects (
   id BIGSERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
+  name TEXT NOT NULL UNIQUE,
   api_key TEXT NOT NULL UNIQUE,
+  callback_url TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE
 );

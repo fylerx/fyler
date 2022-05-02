@@ -9,12 +9,13 @@ import (
 )
 
 type Project struct {
-	ID        uint64           `gorm:"primarykey" json:"id"`
-	Name      string           `json:"name"`
-	APIKey    string           `json:"apikey"`
-	Storage   storages.Storage `json:"-"`
-	CreatedAt time.Time        `json:"created_at"`
-	UpdatedAt time.Time        `json:"updated_at"`
+	ID          uint64           `gorm:"primarykey" json:"id"`
+	Name        string           `json:"name"`
+	APIKey      string           `json:"apikey"`
+	CallbackURL string           `json:"callback_url"`
+	Storage     storages.Storage `json:"-"`
+	CreatedAt   time.Time        `json:"created_at"`
+	UpdatedAt   time.Time        `json:"updated_at"`
 }
 
 type projectKey string

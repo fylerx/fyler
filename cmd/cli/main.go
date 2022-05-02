@@ -54,7 +54,8 @@ func main() {
 				Usage:   "add a task to the list",
 				Action: func(c *cli.Context) error {
 					println(c.Args().First())
-					data := &projects.Project{Name: c.Args().First()}
+					println(c.Args().Get(1))
+					data := &projects.Project{Name: c.Args().Get(0), CallbackURL: c.Args().Get(1)}
 					p, err := projectRepo.Create(data)
 					if err != nil {
 						log.Fatal(err)

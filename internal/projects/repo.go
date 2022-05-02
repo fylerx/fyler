@@ -54,7 +54,7 @@ func (repo *ProjectsRepo) GetByAPIKey(api_key string) (*Project, error) {
 
 func (repo *ProjectsRepo) Create(project *Project) (*Project, error) {
 	project.APIKey = randutils.RandString(32)
-	err := repo.projects.Select("Name", "APIKey").Create(project).Error
+	err := repo.projects.Select("Name", "APIKey", "CallbackURL").Create(project).Error
 	if err != nil {
 		return nil, err
 	}

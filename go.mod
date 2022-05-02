@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.43.21
 	github.com/contribsys/faktory v1.6.0
 	github.com/contribsys/faktory_worker_go v1.6.0
+	github.com/go-resty/resty/v2 v2.7.0 // indirect
 	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.6
 	github.com/gorilla/mux v1.8.0

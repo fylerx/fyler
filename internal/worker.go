@@ -15,6 +15,7 @@ import (
 	"github.com/fylerx/fyler/internal/orm"
 	"github.com/fylerx/fyler/internal/tasks"
 	"github.com/fylerx/fyler/internal/workers"
+	"github.com/go-resty/resty/v2"
 	gormcrypto "github.com/pkasila/gorm-crypto"
 	"github.com/pkasila/gorm-crypto/algorithms"
 	"github.com/pkasila/gorm-crypto/serialization"
@@ -72,14 +73,7 @@ func (w *Worker) Shutdown() error {
 }
 
 func (w *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
-	task, err := workers.FetchTaskFromQueue(w.tasks, args[0].(string))
-	if err != nil {
-		log.Printf("error %v\n", err)
-		return err
-	}
-
-	help := worker.HelperFor(ctx)
-	err = w.tasks.SetProgressStatus(task, help.Jid())
+	task, err := workers.FetchTaskFromQueue(ctx, w.tasks, args[0].(string))
 	if err != nil {
 		log.Printf("error %v\n", err)
 		return err
@@ -134,6 +128,13 @@ func (w *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
 	if err != nil {
 		w.tasks.Failed(task, err)
 		log.Printf("error %v\n", err)
+		return err
 	}
+
+	client := resty.New()
+	resp, err := client.R().
+		SetBody(task.Conversion).
+		Post(task.Project.CallbackURL)
+	fmt.Printf("resp %v", resp)
 	return nil
 }
