@@ -1,12 +1,10 @@
 db:
-  host: localhost
+  host: postgres
   username: fylerx
   password: fylerx
   database: fylerx
   port: 5432
   sslmode: disable
   timezone: "Europe/Moscow"
-http:
-  port: 8008
 crypto:
   passphrase: "passphrasewhichneedstobe32bytes!"
