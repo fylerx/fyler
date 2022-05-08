@@ -1,5 +1,6 @@
 package constants
 
 const (
-	AppName = "dispatcher"
+	AppName    = "dispatcher"
+	WorkerName = "worker"
 )

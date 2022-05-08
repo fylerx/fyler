@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	worker "github.com/contribsys/faktory_worker_go"
@@ -29,7 +29,7 @@ type Worker struct {
 
 func (w *Worker) Setup() error {
 	cfg := &config.Config{}
-	_, err := config.Read(constants.AppName, config.Defaults, cfg)
+	_, err := config.Read(constants.WorkerName, config.Defaults, cfg)
 	if err != nil {
 		return fmt.Errorf("[startup] can't read config, err: %w", err)
 	}
@@ -87,7 +87,7 @@ func (w *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
 	}
 
 	file, err := operation.DownloadObject()
-	defer os.Remove(file.Name())
+	// defer os.Remove(file.Name())
 	if err != nil {
 		log.Printf("error %v\n", err)
 		w.tasks.Failed(task, err)
@@ -96,14 +96,21 @@ func (w *Worker) convertToPDF(ctx context.Context, args ...interface{}) error {
 
 	// Convert file
 	startTimeSpent := time.Now()
-	FileOut := fmt.Sprintf("converted_%s", file.Name())
-	out, err := exec.Command("unoconv", "-o", FileOut, "-f", "pdf", file.Name()).Output()
+	// fs, err := file.Stat()
+	// fs.Name()
+	base := filepath.Base(file.Name())
+	FileOut := fmt.Sprintf("/fylerx/converted/%s.pdf", base)
+
+	fmt.Printf("IN: %v\n", file.Name())
+	fmt.Printf("OUT: %v\n", FileOut)
+	out, err := exec.Command("unoconvert", "--convert-to", "pdf", file.Name(), FileOut).CombinedOutput()
 	if err != nil {
 		w.tasks.Failed(task, err)
 		log.Printf("error %v\n", err)
 		return err
 	}
-	fmt.Println("Command Successfully Executed", out)
+	fmt.Println("Command Successfully Executed")
+	fmt.Println(string(out))
 
 	fi, err := file.Stat()
 	if err != nil {

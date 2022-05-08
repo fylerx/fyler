@@ -60,7 +60,7 @@ func (ops *Operation) UploadObject(file *os.File) error {
 }
 
 func (ops *Operation) DownloadObject() (*os.File, error) {
-	file, err := ioutil.TempFile("/tmp", "fylerx_")
+	file, err := ioutil.TempFile("/tmp", "fylerx-*")
 	if err != nil {
 		return file, err
 	}
